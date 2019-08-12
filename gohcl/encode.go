@@ -123,6 +123,9 @@ func populateBody(rv reflect.Value, ty reflect.Type, tags *fieldTags, dst *hclwr
 			if fieldTy.Kind() == reflect.Ptr && fieldVal.IsNil() {
 				continue // ignore
 			}
+			if tags.Omitempty[name] && isZero(fieldVal) {
+				continue // ignore
+			}
 			if prevWasBlock {
 				dst.AppendNewline()
 				prevWasBlock = false
@@ -188,4 +191,36 @@ func populateBody(rv reflect.Value, ty reflect.Type, tags *fieldTags, dst *hclwr
 			}
 		}
 	}
+}
+
+func isZero(v reflect.Value) bool {
+	kind := v.Kind()
+	switch kind {
+	case reflect.String:
+		return len(v.String()) == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	case reflect.Slice:
+		return v.Len() == 0
+	case reflect.Map:
+		return v.Len() == 0
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Struct:
+		vt := v.Type()
+		for i := v.NumField() - 1; i >= 0; i-- {
+			if vt.Field(i).PkgPath != "" {
+				continue // Private field
+			}
+			if !isZero(v.Field(i)) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }

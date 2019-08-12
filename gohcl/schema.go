@@ -114,6 +114,7 @@ type fieldTags struct {
 	Labels     []labelField
 	Remain     *int
 	Optional   map[string]bool
+	Omitempty  map[string]bool
 }
 
 type labelField struct {
@@ -126,6 +127,7 @@ func getFieldTags(ty reflect.Type) *fieldTags {
 		Attributes: map[string]int{},
 		Blocks:     map[string]int{},
 		Optional:   map[string]bool{},
+		Omitempty:  map[string]bool{},
 	}
 
 	ct := ty.NumField()
@@ -136,14 +138,16 @@ func getFieldTags(ty reflect.Type) *fieldTags {
 			continue
 		}
 
-		comma := strings.Index(tag, ",")
+		//comma := strings.Index(tag, ",")
+		splitTags := strings.Split(tag, ",")
 		var name, kind string
-		if comma != -1 {
-			name = tag[:comma]
-			kind = tag[comma+1:]
-		} else {
-			name = tag
+
+		if len(splitTags) == 1 {
+			name = splitTags[0]
 			kind = "attr"
+		} else {
+			name = splitTags[0]
+			kind = splitTags[1]
 		}
 
 		switch kind {
@@ -165,8 +169,15 @@ func getFieldTags(ty reflect.Type) *fieldTags {
 		case "optional":
 			ret.Attributes[name] = i
 			ret.Optional[name] = true
+		case "omitempty":
+			ret.Attributes[name] = i
+			ret.Omitempty[name] = true
 		default:
 			panic(fmt.Sprintf("invalid hcl field tag kind %q on %s %q", kind, field.Type.String(), field.Name))
+		}
+
+		if len(splitTags) == 3 && splitTags[2] == "omitempty" {
+			ret.Omitempty[name] = true
 		}
 	}
 
