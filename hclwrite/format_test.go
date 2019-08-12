@@ -64,6 +64,10 @@ func TestFormat(t *testing.T) {
 			`foo(1, -2, a * b, b, c)`,
 		},
 		{
+			`foo(a,b...)`,
+			`foo(a, b...)`,
+		},
+		{
 			`a="hello ${ name }"`,
 			`a = "hello ${name}"`,
 		},
@@ -74,6 +78,10 @@ func TestFormat(t *testing.T) {
 		{
 			`a="${b}${c}${ d } ${e}"`,
 			`a = "${b}${c}${d} ${e}"`,
+		},
+		{
+			`"%{if true}${var.foo}%{endif}"`,
+			`"%{if true}${var.foo}%{endif}"`,
 		},
 		{
 			`b{}`,
@@ -545,6 +553,60 @@ baz {
   default = "string"
 }
 `,
+		},
+		{
+			`
+foo {
+bar = <<EOT
+Foo bar baz
+EOT
+baz = <<EOT
+Foo bar baz
+EOT
+}
+
+bar {
+foo = "bar"
+}
+`,
+			`
+foo {
+  bar = <<EOT
+Foo bar baz
+EOT
+  baz = <<EOT
+Foo bar baz
+EOT
+}
+
+bar {
+  foo = "bar"
+}
+`,
+		},
+		{
+			`
+module "foo" {
+foo = <<EOF
+5
+EOF
+}
+
+module "x" {
+a = "b"
+abcde = "456"
+}`,
+			`
+module "foo" {
+  foo = <<EOF
+5
+EOF
+}
+
+module "x" {
+  a     = "b"
+  abcde = "456"
+}`,
 		},
 	}
 
